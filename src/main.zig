@@ -7,9 +7,7 @@ const c = @cImport({
 });
 
 const Processing = @import("processing.zig");
-const PerfGraph = @import("perf.zig");
-
-const nvg = @import("nanovg");
+const Sketch = @import("examples/noc_1_1.zig");
 
 var blowup: bool = false;
 var screenshot: bool = false;
@@ -47,7 +45,7 @@ pub fn main() !void {
     if (!builtin.target.isDarwin()) {
         c.glfwGetMonitorContentScale(monitor, &scale, null);
     }
-    window = c.glfwCreateWindow(@floatToInt(i32, scale * 1000), @floatToInt(i32, scale * 600), "NanoVG", null, null);
+    window = c.glfwCreateWindow(@floatToInt(i32, scale * 800), @floatToInt(i32, scale * 600), "ZIG processing", null, null);
     if (window == null) {
         return error.GLFWInitFailed;
     }
@@ -61,36 +59,32 @@ pub fn main() !void {
         return error.GLADInitFailed;
     }
 
-    var vg = try nvg.gl.init(allocator, .{
-        .antialias = true,
-        .stencil_strokes = false,
-        .debug = true,
-    });
-    defer vg.deinit();
-
-    var processing: Processing = undefined;
-    processing.load(vg);
-    defer processing.free(vg);
-    var fps = PerfGraph.init(.fps, "Frame Time");
+    var win_width: i32 = undefined;
+    var win_height: i32 = undefined;
+    c.glfwGetWindowSize(window, &win_width, &win_height);
+    var processing: Processing = Processing.create(win_width, win_height);
+    try processing.init(allocator);
+    defer processing.deinit();
 
     c.glfwSwapInterval(0);
 
     c.glfwSetTime(0);
     prevt = c.glfwGetTime();
 
+    var sketch = try allocator.create(Sketch);
+    try sketch.setup(&processing);
+
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         const t = c.glfwGetTime();
         const dt = t - prevt;
+        _ = dt;
         prevt = t;
-        fps.update(@floatCast(f32, dt));
 
         var mx: f64 = undefined;
         var my: f64 = undefined;
         c.glfwGetCursorPos(window, &mx, &my);
         mx /= scale;
         my /= scale;
-        var win_width: i32 = undefined;
-        var win_height: i32 = undefined;
         c.glfwGetWindowSize(window, &win_width, &win_height);
         win_width = @floatToInt(i32, @intToFloat(f32, win_width) / scale);
         win_height = @floatToInt(i32, @intToFloat(f32, win_height) / scale);
@@ -99,7 +93,7 @@ pub fn main() !void {
         c.glfwGetFramebufferSize(window, &fb_width, &fb_height);
 
         // Calculate pixel ratio for hi-dpi devices.
-        const pxRatio = @intToFloat(f32, fb_width) / @intToFloat(f32, win_width);
+        const px_ratio = @intToFloat(f32, fb_width) / @intToFloat(f32, win_width);
 
         // Update and render
         c.glViewport(0, 0, fb_width, fb_height);
@@ -110,12 +104,13 @@ pub fn main() !void {
         }
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT | c.GL_STENCIL_BUFFER_BIT);
 
-        vg.beginFrame(@intToFloat(f32, win_width), @intToFloat(f32, win_height), pxRatio);
+        // draw
+        processing.begin_draw(win_width, win_height, px_ratio);
 
-        processing.draw(vg, @floatCast(f32, mx), @floatCast(f32, my), @intToFloat(f32, win_width), @intToFloat(f32, win_height), @floatCast(f32, t), blowup);
-        fps.draw(vg, 5, 5);
+        try sketch.draw(&processing);
 
-        vg.endFrame();
+        //processing.draw(@floatCast(f32, mx), @floatCast(f32, my), @intToFloat(f32, win_width), @intToFloat(f32, win_height), @floatCast(f32, t), blowup);
+        processing.end_draw();
 
         // if (screenshot) {
         //     screenshot = false;
@@ -126,5 +121,6 @@ pub fn main() !void {
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
+        std.time.sleep(std.time.ns_per_ms * 16);
     }
 }

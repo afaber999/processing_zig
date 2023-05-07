@@ -3,10 +3,23 @@ const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
-const c = @cImport({
-    @cDefine("STBI_WRITE_NO_STDIO", "1");
-    @cInclude("stb_image_write.h");
-});
+// const c = @cImport({
+//     @cDefine("STBI_WRITE_NO_STDIO", "1");
+//     @cInclude("stb_image_write.h");
+// });
+
+m_vg: nvg = undefined,
+
+m_fill_color: [3]u8 = [_]u8{ 0xff, 0xff, 0xff },
+m_no_fill: bool = false,
+
+m_stroke_color: [3]u8 = [_]u8{ 0, 0, 0 },
+m_no_stroke: bool = false,
+
+m_stroke_weight: i32 = 1,
+m_width: i32,
+m_height: i32,
+
 // const use_webgl = builtin.cpu.arch.isWasm();
 
 // const gl = if (use_webgl)
@@ -21,29 +34,128 @@ const gl = @cImport({
 
 const nvg = @import("nanovg");
 
-const Processing = @This();
+const Self = @This();
 
 fn isBlack(col: nvg.Color) bool {
     return col.r == 0 and col.g == 0 and col.b == 0 and col.a == 0;
 }
 
-pub fn load(processing: *Processing, vg: nvg) void {
-    _ = processing;
-    _ = vg;
+pub fn create(win_width: i32, win_height: i32) Self {
+    return Self{
+        .m_width = win_width,
+        .m_height = win_height,
+    };
 }
 
-pub fn free(processing: Processing, vg: nvg) void {
-    _ = processing;
-    _ = vg;
+pub fn init(self: *Self, allocator: Allocator) !void {
+    self.m_vg = try nvg.gl.init(allocator, .{
+        .antialias = true,
+        .stencil_strokes = false,
+        .debug = true,
+    });
 }
 
-pub fn draw(demo: Processing, vg: nvg, mx: f32, my: f32, width: f32, height: f32, t: f32, blowup: bool) void {
-    _ = demo;
+pub fn deinit(processing: Self) void {
+    _ = processing;
+}
+
+pub fn width(self: *const Self) i32 {
+    return self.m_width;
+}
+
+pub fn height(self: *const Self) i32 {
+    return self.m_height;
+}
+pub fn background(self: *Self, r: u8, g: u8, b: u8) void {
+    _ = b;
+    _ = g;
+    _ = r;
+    _ = self;
+    // _ = sdl.SDL_SetRenderDrawColor(self.m_renderer, r, g, b, 0xff);
+    // _ = sdl.SDL_RenderClear(self.m_renderer);
+}
+
+pub fn background_grey(self: *Self, col: u8) void {
+    self.background(col, col, col);
+}
+
+pub fn fill(self: *Self, r: u8, g: u8, b: u8) void {
+    self.m_fill_color[0] = r;
+    self.m_fill_color[1] = g;
+    self.m_fill_color[2] = b;
+    self.m_no_fill = false;
+}
+
+pub fn no_fill(self: *Self) void {
+    self.m_no_fill = true;
+}
+
+pub fn stroke(self: *Self, r: u8, g: u8, b: u8) void {
+    self.m_stroke_color[0] = r;
+    self.m_stroke_color[1] = g;
+    self.m_stroke_color[2] = b;
+    self.m_no_stroke = false;
+}
+
+pub fn no_stroke(self: *Self) void {
+    self.m_no_stroke = true;
+}
+
+pub fn stroke_weight(self: *Self, weight: i32) void {
+    self.m_stroke_weight = weight;
+}
+
+fn do_fill_stroke(self: *Self) void {
+    if (!self.m_no_fill) {
+        self.m_vg.fillColor(nvg.rgba(self.m_fill_color[0], self.m_fill_color[1], self.m_fill_color[2], 255));
+        self.m_vg.fill();
+    }
+    if (!self.m_no_stroke) {
+        self.m_vg.strokeColor(nvg.rgba(self.m_stroke_color[0], self.m_stroke_color[1], self.m_stroke_color[2], 255));
+        self.m_vg.strokeWidth(@intToFloat(f32, self.m_stroke_weight));
+        self.m_vg.stroke();
+    }
+}
+
+pub fn rect(self: *Self, a: f32, b: f32, c: f32, d: f32) void {
+    // const xl = a - c;
+    // const yt = b - d;
+    // const xr = a + c;
+    // const yb = b + d;
+
+    self.m_vg.save();
+    defer self.m_vg.restore();
+
+    self.m_vg.beginPath();
+    self.m_vg.rect(a, b, c, d);
+    self.do_fill_stroke();
+}
+
+pub fn ellipse(self: *Self, a: f32, b: f32, c: f32, d: f32) void {
+    self.m_vg.save();
+    defer self.m_vg.restore();
+
+    self.m_vg.beginPath();
+    self.m_vg.ellipse(a, b, c, d);
+    self.do_fill_stroke();
+}
+
+pub fn begin_draw(self: *Self, win_width: i32, win_height: i32, px_ratio: f32) void {
+    self.m_vg.beginFrame(@intToFloat(f32, win_width), @intToFloat(f32, win_height), px_ratio);
+}
+
+pub fn end_draw(self: *Self) void {
+    self.m_vg.endFrame();
+}
+
+pub fn draw(self: *Self, mx: f32, my: f32, ww: f32, wh: f32, t: f32, blowup: bool) void {
     _ = blowup;
 
-    drawEyes(vg, width - 250, 50, 150, 100, mx, my, t);
-    drawLines(vg, 120, height - 50, 600, 50, t);
-    drawWidths(vg, 10, 50, 30);
+    drawEyes(self.m_vg, ww - 250, 50, 150, 100, mx, my, t);
+    drawLines(self.m_vg, 120, wh - 50, 600, 50, t);
+    drawWidths(self.m_vg, 10, 50, 30);
+
+    //    self.ellipse(100, 120, 150, 100);
 }
 
 fn drawEyes(vg: nvg, x: f32, y: f32, w: f32, h: f32, mx: f32, my: f32, t: f32) void {
@@ -159,12 +271,12 @@ fn drawLines(vg: nvg, x: f32, y: f32, w: f32, h: f32, t: f32) void {
     }
 }
 
-fn drawWidths(vg: nvg, x: f32, y0: f32, width: f32) void {
+fn drawWidths(vg: nvg, x: f32, y0: f32, ww: f32) void {
     vg.save();
     defer vg.restore();
 
     vg.strokeColor(nvg.rgba(0, 0, 0, 255));
-    
+
     var y = y0;
     var i: usize = 0;
     while (i < 20) : (i += 1) {
@@ -172,7 +284,7 @@ fn drawWidths(vg: nvg, x: f32, y0: f32, width: f32) void {
         vg.strokeWidth(w);
         vg.beginPath();
         vg.moveTo(x, y);
-        vg.lineTo(x + width, y + width * 0.3);
+        vg.lineTo(x + ww, y + ww * 0.3);
         vg.stroke();
         y += 10;
     }
