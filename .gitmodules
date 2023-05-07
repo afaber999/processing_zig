@@ -1,0 +1,3 @@
+[submodule "deps/nanovg-zig"]
+	path = deps/nanovg-zig
+	url = https://github.com/afaber999/nanovg-zig.git
