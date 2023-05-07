@@ -7,7 +7,8 @@ const c = @cImport({
 });
 
 const Processing = @import("processing.zig");
-const Sketch = @import("examples/noc_1_1.zig");
+//const Sketch = @import("examples/noc_1_1.zig");
+const Sketch = @import("examples/noc_1_2.zig");
 
 var blowup: bool = false;
 var screenshot: bool = false;
@@ -83,8 +84,14 @@ pub fn main() !void {
         var mx: f64 = undefined;
         var my: f64 = undefined;
         c.glfwGetCursorPos(window, &mx, &my);
+
+        processing.update_mouse(@floatToInt(i32, mx), @floatToInt(i32, my));
+
         mx /= scale;
         my /= scale;
+
+        //std.debug.print("Mouse pos {} {} \n ", .{ mx, my });
+
         c.glfwGetWindowSize(window, &win_width, &win_height);
         win_width = @floatToInt(i32, @intToFloat(f32, win_width) / scale);
         win_height = @floatToInt(i32, @intToFloat(f32, win_height) / scale);

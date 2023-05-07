@@ -3,6 +3,8 @@ const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
+pub const Vector2 = @import("vector2.zig");
+
 // const c = @cImport({
 //     @cDefine("STBI_WRITE_NO_STDIO", "1");
 //     @cInclude("stb_image_write.h");
@@ -16,10 +18,38 @@ m_no_fill: bool = false,
 m_stroke_color: [3]u8 = [_]u8{ 0, 0, 0 },
 m_no_stroke: bool = false,
 
+m_translate: Vector2 = Vector2.create(0, 0),
+m_no_translate: bool = true,
+
 m_stroke_weight: i32 = 1,
 m_width: i32,
 m_height: i32,
 
+m_mouse_x: i32 = 0,
+m_mouse_y: i32 = 0,
+
+m_pmouse_x: i32 = 0,
+m_pmouse_y: i32 = 0,
+
+pub fn mouse_x(self: *Self) i32 {
+    return self.m_mouse_x;
+}
+pub fn mouse_y(self: *Self) i32 {
+    return self.m_mouse_y;
+}
+pub fn pmouse_x(self: *Self) i32 {
+    return self.m_pmouse_x;
+}
+pub fn pmouse_y(self: *Self) i32 {
+    return self.m_pmouse_y;
+}
+
+pub fn update_mouse(self: *Self, nx: i32, ny: i32) void {
+    self.m_pmouse_x = self.m_mouse_x;
+    self.m_pmouse_y = self.m_mouse_y;
+    self.m_mouse_x = nx;
+    self.m_mouse_y = ny;
+}
 // const use_webgl = builtin.cpu.arch.isWasm();
 
 // const gl = if (use_webgl)
@@ -79,6 +109,16 @@ pub fn background_grey(self: *Self, col: u8) void {
     self.background(col, col, col);
 }
 
+pub fn translate(self: *Self, x: f32, y: f32) void {
+    self.m_translate = Vector2.add(self.m_translate, Vector2.create(x, y));
+    self.m_no_translate = false;
+}
+
+pub fn no_translate(self: *Self) void {
+    self.m_tramslate = Vector2.create(0, 0);
+    self.m_no_translate = true;
+}
+
 pub fn fill(self: *Self, r: u8, g: u8, b: u8) void {
     self.m_fill_color[0] = r;
     self.m_fill_color[1] = g;
@@ -105,6 +145,13 @@ pub fn stroke_weight(self: *Self, weight: i32) void {
     self.m_stroke_weight = weight;
 }
 
+fn do_start(self: *Self) void {
+    self.m_vg.beginPath();
+    if (!self.m_no_translate) {
+        self.m_vg.translate(self.m_translate.x, self.m_translate.y);
+    }
+}
+
 fn do_fill_stroke(self: *Self) void {
     if (!self.m_no_fill) {
         self.m_vg.fillColor(nvg.rgba(self.m_fill_color[0], self.m_fill_color[1], self.m_fill_color[2], 255));
@@ -126,7 +173,7 @@ pub fn rect(self: *Self, a: f32, b: f32, c: f32, d: f32) void {
     self.m_vg.save();
     defer self.m_vg.restore();
 
-    self.m_vg.beginPath();
+    self.do_start();
     self.m_vg.rect(a, b, c, d);
     self.do_fill_stroke();
 }
@@ -135,7 +182,7 @@ pub fn ellipse(self: *Self, a: f32, b: f32, c: f32, d: f32) void {
     self.m_vg.save();
     defer self.m_vg.restore();
 
-    self.m_vg.beginPath();
+    self.do_start();
     self.m_vg.ellipse(a, b, c, d);
     self.do_fill_stroke();
 }
