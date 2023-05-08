@@ -8,8 +8,9 @@ const c = @cImport({
 const glfw = Processing.glfw;
 
 const Processing = @import("processing.zig");
-const Sketch = @import("examples/noc_1_1.zig");
+//const Sketch = @import("examples/noc_1_1.zig");
 //const Sketch = @import("examples/noc_1_2.zig");
+const Sketch = @import("examples/noc_1_3.zig");
 
 var blowup: bool = false;
 var screenshot: bool = false;

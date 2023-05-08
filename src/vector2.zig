@@ -19,6 +19,13 @@ pub fn add(a: Self, b: Self) Self {
     };
 }
 
+pub fn sub(a: Self, b: Self) Self {
+    return Self{
+        .x = a.x - b.x,
+        .y = a.y - b.y,
+    };
+}
+
 pub fn length(a: Self) f32 {
     return std.math.sqrt(a.x * a.x + a.y * a.y);
 }

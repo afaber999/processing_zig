@@ -2,6 +2,7 @@
 // Daniel Shiffman
 // http://natureofcode.com
 // Example 1-1: Bouncing Ball, no vectors
+// ZIG port by Albert Faber
 
 const std = @import("std");
 const print = std.debug.print;

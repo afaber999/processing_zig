@@ -2,6 +2,7 @@
 // Daniel Shiffman
 // http://natureofcode.com
 // Example 1-2: Bouncing Ball, vectors
+// ZIG port by Albert Faber
 
 const Self = @This();
 const Processing = @import("../processing.zig");
@@ -11,16 +12,16 @@ position: Vector2,
 velocity: Vector2,
 
 pub fn setup(self: *Self, p: *Processing) anyerror!void {
-    _ = p;
+    p.size(200, 200);
+    p.background(255, 255, 255, 255);
     self.position = Vector2.create(100, 100);
     self.velocity = Vector2.create(2.5, 2.0);
-    // p.background(255, 255, 255, 255);
 }
 
 pub fn draw(self: *Self, p: *Processing) anyerror!void {
     p.no_stroke();
     p.fill(255, 255, 255, 10);
-    p.rect(0, 0, @intToFloat(f32, p.width()) / 4, @intToFloat(f32, p.height()) / 4);
+    p.rect(0, 0, @intToFloat(f32, p.width()), @intToFloat(f32, p.height()));
 
     // Add the current speed to the position.
     self.position = self.position.add(self.velocity);
