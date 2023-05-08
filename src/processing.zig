@@ -139,8 +139,6 @@ pub fn draw(self: *Self, mx: f32, my: f32, ww: f32, wh: f32, t: f32, blowup: boo
     drawEyes(self.m_vg, ww - 250, 50, 150, 100, mx, my, t);
     drawLines(self.m_vg, 120, wh - 50, 600, 50, t);
     drawWidths(self.m_vg, 10, 50, 30);
-
-    //    self.ellipse(100, 120, 150, 100);
 }
 
 pub fn width(self: *const Self) i32 {
@@ -247,7 +245,7 @@ pub fn ellipse(self: *Self, a: f32, b: f32, c: f32, d: f32) void {
     defer self.m_vg.restore();
 
     self.do_start();
-    self.m_vg.ellipse(a, b, c, d);
+    self.m_vg.ellipse(a, b, c / 2.0, d / 2.0);
     self.do_fill_stroke();
 }
 

@@ -92,25 +92,6 @@ pub fn main() !void {
         mx /= scale;
         my /= scale;
 
-        //std.debug.print("Mouse pos {} {} \n ", .{ mx, my });
-
-        // glfw.glfwGetWindowSize(window, &win_width, &win_height);
-        // win_width = @floatToInt(i32, @intToFloat(f32, win_width) / scale);
-        // win_height = @floatToInt(i32, @intToFloat(f32, win_height) / scale);
-        // var fb_width: i32 = undefined;
-        // var fb_height: i32 = undefined;
-        // glfw.glfwGetFramebufferSize(window, &fb_width, &fb_height);
-
-        // Update and render
-        //c.glViewport(0, 0, fb_width, fb_height);
-        // if (premult) {
-        //     c.glClearColor(0, 0, 0, 0);
-        // } else {
-        //     c.glClearColor(0.3, 0.3, 0.32, 1.0);
-        // }
-        //c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT | c.GL_STENCIL_BUFFER_BIT);
-        //c.glClear(c.GL_DEPTH_BUFFER_BIT | c.GL_STENCIL_BUFFER_BIT);
-
         // draw
         processing.begin_draw();
         try sketch.draw(&processing);

@@ -15,7 +15,7 @@ var xspeed: f32 = 2.5;
 var yspeed: f32 = 2.0;
 
 pub fn setup(self: *Self, p: *Processing) anyerror!void {
-    p.size(800, 300);
+    p.size(800, 200);
     // p.smooth();
     _ = self;
 }
