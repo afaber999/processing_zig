@@ -14,29 +14,28 @@ pub fn setup(self: *Self, p: *Processing) anyerror!void {
     _ = p;
     self.position = Vector2.create(100, 100);
     self.velocity = Vector2.create(2.5, 2.0);
+    // p.background(255, 255, 255, 255);
 }
 
 pub fn draw(self: *Self, p: *Processing) anyerror!void {
+    p.no_stroke();
+    p.fill(255, 255, 255, 10);
+    p.rect(0, 0, @intToFloat(f32, p.width()) / 4, @intToFloat(f32, p.height()) / 4);
 
     // Add the current speed to the position.
     self.position = self.position.add(self.velocity);
-    // or self.position = Vector2.add(self.position, self.velocity);
 
-    // convert image widht/height to float
-    const fw = @intToFloat(f32, p.width());
-    const fh = @intToFloat(f32, p.height());
-
-    if ((self.position.x >= fw) or (self.position.x < 0)) {
+    // check borders
+    if ((self.position.x >= @intToFloat(f32, p.width())) or (self.position.x < 0)) {
         self.velocity.x *= -1;
     }
-    if ((self.position.y >= fh) or (self.position.y < 0)) {
+    if ((self.position.y >= @intToFloat(f32, p.height())) or (self.position.y < 0)) {
         self.velocity.y *= -1;
     }
 
     // Display circle at position
-    p.background_grey(255);
-    p.stroke(0, 0, 0);
-    p.stroke_weight(2);
-    p.fill(255, 127, 127);
+    p.stroke(0, 0, 0, 255);
+    p.stroke_weight(5);
+    p.fill(175, 175, 175, 255);
     p.ellipse(self.position.x, self.position.y, 16, 16);
 }

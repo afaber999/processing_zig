@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 
@@ -12,10 +13,10 @@ pub const Vector2 = @import("vector2.zig");
 
 m_vg: nvg = undefined,
 
-m_fill_color: [3]u8 = [_]u8{ 0xff, 0xff, 0xff },
+m_fill_color: [4]u8 = [_]u8{ 0xff, 0xff, 0xff, 0xff },
 m_no_fill: bool = false,
 
-m_stroke_color: [3]u8 = [_]u8{ 0, 0, 0 },
+m_stroke_color: [4]u8 = [_]u8{ 0, 0, 0, 0xff },
 m_no_stroke: bool = false,
 
 m_translate: Vector2 = Vector2.create(0, 0),
@@ -30,6 +31,9 @@ m_mouse_y: i32 = 0,
 
 m_pmouse_x: i32 = 0,
 m_pmouse_y: i32 = 0,
+
+window: ?*glfw.GLFWwindow,
+setup_completed: bool = false,
 
 pub fn mouse_x(self: *Self) i32 {
     return self.m_mouse_x;
@@ -58,8 +62,12 @@ pub fn update_mouse(self: *Self, nx: i32, ny: i32) void {
 //     @cImport({
 //         @cInclude("glad/glad.h");
 //     });
-const gl = @cImport({
+pub const gl = @cImport({
     @cInclude("glad/glad.h");
+});
+
+pub const glfw = @cImport({
+    @cInclude("GLFW/glfw3.h");
 });
 
 const nvg = @import("nanovg");
@@ -70,11 +78,32 @@ fn isBlack(col: nvg.Color) bool {
     return col.r == 0 and col.g == 0 and col.b == 0 and col.a == 0;
 }
 
-pub fn create(win_width: i32, win_height: i32) Self {
+pub fn create(window: ?*glfw.GLFWwindow) Self {
+    var win_width: i32 = undefined;
+    var win_height: i32 = undefined;
+
+    glfw.glfwGetWindowSize(window, &win_width, &win_height);
+
     return Self{
+        .window = window,
         .m_width = win_width,
         .m_height = win_height,
     };
+}
+
+pub fn size(self: *Self, win_width: i32, win_height: i32) void {
+    glfw.glfwSetWindowSize(self.window, win_width, win_height);
+    var fb_width: i32 = undefined;
+    var fb_height: i32 = undefined;
+    glfw.glfwGetFramebufferSize(self.window, &fb_width, &fb_height);
+
+    self.m_width = fb_width;
+    self.m_height = fb_height;
+
+    if (!self.setup_completed) {
+        self.end_draw();
+        self.begin_draw();
+    }
 }
 
 pub fn init(self: *Self, allocator: Allocator) !void {
@@ -89,6 +118,31 @@ pub fn deinit(processing: Self) void {
     _ = processing;
 }
 
+pub fn begin_draw(self: *Self) void {
+
+    // Calculate pixel ratio for hi-dpi devices.
+    const px_ratio = @intToFloat(f32, self.m_width) / @intToFloat(f32, self.m_height);
+    glfw.glViewport(0, 0, self.m_width, self.m_height);
+
+    //c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT | c.GL_STENCIL_BUFFER_BIT);
+    gl.glClear(gl.GL_DEPTH_BUFFER_BIT | gl.GL_STENCIL_BUFFER_BIT);
+    self.m_vg.beginFrame(@intToFloat(f32, self.m_width), @intToFloat(f32, self.m_height), px_ratio);
+}
+
+pub fn end_draw(self: *Self) void {
+    self.m_vg.endFrame();
+}
+
+pub fn draw(self: *Self, mx: f32, my: f32, ww: f32, wh: f32, t: f32, blowup: bool) void {
+    _ = blowup;
+
+    drawEyes(self.m_vg, ww - 250, 50, 150, 100, mx, my, t);
+    drawLines(self.m_vg, 120, wh - 50, 600, 50, t);
+    drawWidths(self.m_vg, 10, 50, 30);
+
+    //    self.ellipse(100, 120, 150, 100);
+}
+
 pub fn width(self: *const Self) i32 {
     return self.m_width;
 }
@@ -96,17 +150,25 @@ pub fn width(self: *const Self) i32 {
 pub fn height(self: *const Self) i32 {
     return self.m_height;
 }
-pub fn background(self: *Self, r: u8, g: u8, b: u8) void {
-    _ = b;
-    _ = g;
-    _ = r;
+
+fn norm_color(color: u8) f32 {
+    return @intToFloat(f32, color) / 255.0;
+}
+
+pub fn background(self: *Self, r: u8, g: u8, b: u8, a: u8) void {
     _ = self;
+    gl.glClearColor(norm_color(r), norm_color(g), norm_color(b), norm_color(a));
+    gl.glClear(gl.GL_COLOR_BUFFER_BIT);
     // _ = sdl.SDL_SetRenderDrawColor(self.m_renderer, r, g, b, 0xff);
     // _ = sdl.SDL_RenderClear(self.m_renderer);
 }
 
 pub fn background_grey(self: *Self, col: u8) void {
-    self.background(col, col, col);
+    self.background_grey_alpha(col, 255);
+}
+
+pub fn background_grey_alpha(self: *Self, col: u8, a: u8) void {
+    self.background(col, col, col, a);
 }
 
 pub fn translate(self: *Self, x: f32, y: f32) void {
@@ -119,10 +181,11 @@ pub fn no_translate(self: *Self) void {
     self.m_no_translate = true;
 }
 
-pub fn fill(self: *Self, r: u8, g: u8, b: u8) void {
+pub fn fill(self: *Self, r: u8, g: u8, b: u8, a: u8) void {
     self.m_fill_color[0] = r;
     self.m_fill_color[1] = g;
     self.m_fill_color[2] = b;
+    self.m_fill_color[3] = a;
     self.m_no_fill = false;
 }
 
@@ -130,10 +193,11 @@ pub fn no_fill(self: *Self) void {
     self.m_no_fill = true;
 }
 
-pub fn stroke(self: *Self, r: u8, g: u8, b: u8) void {
+pub fn stroke(self: *Self, r: u8, g: u8, b: u8, a: u8) void {
     self.m_stroke_color[0] = r;
     self.m_stroke_color[1] = g;
     self.m_stroke_color[2] = b;
+    self.m_stroke_color[3] = a;
     self.m_no_stroke = false;
 }
 
@@ -154,11 +218,11 @@ fn do_start(self: *Self) void {
 
 fn do_fill_stroke(self: *Self) void {
     if (!self.m_no_fill) {
-        self.m_vg.fillColor(nvg.rgba(self.m_fill_color[0], self.m_fill_color[1], self.m_fill_color[2], 255));
+        self.m_vg.fillColor(nvg.rgba(self.m_fill_color[0], self.m_fill_color[1], self.m_fill_color[2], self.m_fill_color[3]));
         self.m_vg.fill();
     }
     if (!self.m_no_stroke) {
-        self.m_vg.strokeColor(nvg.rgba(self.m_stroke_color[0], self.m_stroke_color[1], self.m_stroke_color[2], 255));
+        self.m_vg.strokeColor(nvg.rgba(self.m_stroke_color[0], self.m_stroke_color[1], self.m_stroke_color[2], self.m_stroke_color[3]));
         self.m_vg.strokeWidth(@intToFloat(f32, self.m_stroke_weight));
         self.m_vg.stroke();
     }
@@ -185,24 +249,6 @@ pub fn ellipse(self: *Self, a: f32, b: f32, c: f32, d: f32) void {
     self.do_start();
     self.m_vg.ellipse(a, b, c, d);
     self.do_fill_stroke();
-}
-
-pub fn begin_draw(self: *Self, win_width: i32, win_height: i32, px_ratio: f32) void {
-    self.m_vg.beginFrame(@intToFloat(f32, win_width), @intToFloat(f32, win_height), px_ratio);
-}
-
-pub fn end_draw(self: *Self) void {
-    self.m_vg.endFrame();
-}
-
-pub fn draw(self: *Self, mx: f32, my: f32, ww: f32, wh: f32, t: f32, blowup: bool) void {
-    _ = blowup;
-
-    drawEyes(self.m_vg, ww - 250, 50, 150, 100, mx, my, t);
-    drawLines(self.m_vg, 120, wh - 50, 600, 50, t);
-    drawWidths(self.m_vg, 10, 50, 30);
-
-    //    self.ellipse(100, 120, 150, 100);
 }
 
 fn drawEyes(vg: nvg, x: f32, y: f32, w: f32, h: f32, mx: f32, my: f32, t: f32) void {

@@ -15,34 +15,30 @@ var xspeed: f32 = 2.5;
 var yspeed: f32 = 2.0;
 
 pub fn setup(self: *Self, p: *Processing) anyerror!void {
-    _ = p;
-    //p.size(800, 200);
+    p.size(800, 300);
     // p.smooth();
     _ = self;
 }
 
 pub fn draw(self: *Self, p: *Processing) anyerror!void {
     _ = self;
+    p.background_grey(255);
 
     // Add the current speed to the position.
     x = x + xspeed;
     y = y + yspeed;
 
-    // convert image widht/height to float
-    const fw = @intToFloat(f32, p.width());
-    const fh = @intToFloat(f32, p.height());
-
-    if ((x >= fw) or (x < 0)) {
+    // check borders
+    if ((x >= @intToFloat(f32, p.width())) or (x < 0)) {
         xspeed = xspeed * -1;
     }
-    if ((y >= fh) or (y < 0)) {
+    if ((y >= @intToFloat(f32, p.height())) or (y < 0)) {
         yspeed = yspeed * -1;
     }
 
     // Display circle at x,y position
-    p.background_grey(255);
-    p.stroke(0, 0, 0);
+    p.stroke(0, 0, 0, 255);
     p.stroke_weight(2);
-    p.fill(255, 127, 127);
+    p.fill(127, 127, 127, 255);
     p.ellipse(x, y, 48, 48);
 }
